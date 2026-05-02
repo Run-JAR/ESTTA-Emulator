@@ -1,0 +1,16 @@
+define 0x0 CONSTANT_0
+define 0x1 CONSTANT_1
+define 0x2 DISPLAY1
+define 0x3 DISPLAY2
+define 0x4 PC
+define 0x5 REG6
+define 0x6 REG7
+define 0x7 REG8
+define 0x8 REG9
+define 0x9 REG10
+define 0xA REG11
+define 0xB CONDITIONAL_OUT
+define 0xC CONDITIONAL_IN
+define 0xD ALU_INPUT_A
+define 0xE ALU_INPUT_B
+define 0xF ALU_OUTPUT
