@@ -2,11 +2,15 @@
 
 **Extremely Simple Transport Triggered Architecture**
 
-ESTTA is an 8-bit Transport Triggered Architecture (TTA) CPU implementation featuring a Python-based emulator and a custom assembler. In this architecture, there is no traditional instruction set; the system operates using a single instruction: `move`. All computation and control flow are triggered as side effects of moving data into specialized registers.
+ESTTA is an 8-bit Transport Triggered Architecture (TTA) CPU implementation consisting of a Python-based emulator and a custom assembler. Unlike traditional architectures (like x86 or ARM) that use a variety of opcodes for different operations, ESTTA operates using a single instruction: `move`. 
 
-## Architecture Overview
+All computation, logic, and control flow are achieved as side effects of moving data into specialized hardware-mapped registers.
 
-The system utilizes a 16-register address space (0x0 to 0xF) and 8-bit data width.
+---
+
+## Architecture Specification
+
+The system operates on an 8-bit data bus with a 4-bit register address space. Each instruction is exactly 16 bits wide, representing a single transport from a source register to a destination register.
 
 ### Register Map
 
@@ -14,8 +18,8 @@ The system utilizes a 16-register address space (0x0 to 0xF) and 8-bit data widt
 | :--- | :--- | :--- |
 | `0x0` | `CONSTANT_0` | Hardwired to 0. Writing here acts as a NOP. |
 | `0x1` | `CONSTANT_1` | Hardwired to 1. |
-| `0x2` | `DISPLAY1` | 4x4 LED Display (Rows 1-2). |
-| `0x3` | `DISPLAY2` | 4x4 LED Display (Rows 3-4). |
+| `0x2` | `DISPLAY1` | Virtual 4x4 LED Display (Rows 1-2). |
+| `0x3` | `DISPLAY2` | Virtual 4x4 LED Display (Rows 3-4). |
 | `0x4` | `PC` | Program Counter. Writing an address here triggers a jump. |
 | `0x5` | `REG6` | General-purpose register. |
 | `0x6` | `REG7` | General-purpose register. |
@@ -23,32 +27,35 @@ The system utilizes a 16-register address space (0x0 to 0xF) and 8-bit data widt
 | `0x8` | `REG9` | General-purpose register. |
 | `0x9` | `REG10` | General-purpose register. |
 | `0xA` | `REG11` | General-purpose register. |
-| `0xB` | `CONDITIONAL_OUT` | Conditional output destination. |
-| `0xC` | `CONDITIONAL_IN` | Conditional input source. |
-| `0xD` | `ALU_INPUT_A` | First operand for the subtractor. |
-| `0xE` | `ALU_INPUT_B` | Second operand for the subtractor. |
+| `0xB` | `CONDITIONAL_OUT` | Destination register for conditional moves. |
+| `0xC` | `CONDITIONAL_IN` | Source register for conditional moves. |
+| `0xD` | `ALU_INPUT_A` | Subtractor operand A. |
+| `0xE` | `ALU_INPUT_B` | Subtractor operand B. |
 | `0xF` | `ALU_OUTPUT` | Result of `ALU_INPUT_A - ALU_INPUT_B`. |
 
-### Computation and Control Flow
-The ALU is an 8-bit subtractor. To perform a calculation, move values into `ALU_INPUT_A` and `ALU_INPUT_B`, then read the result from `ALU_OUTPUT`.
+### The ALU and Conditional Logic
 
-Conditional logic is handled by a hardware trigger:
-**If `ALU_OUTPUT` (0xF) is equal to 0, the CPU automatically copies the value in `CONDITIONAL_IN` (0xC) to `CONDITIONAL_OUT` (0xB).**
+The Arithmetic Logic Unit (ALU) is a dedicated subtractor. Because the CPU utilizes 8-bit wraparound (modulo 256), all standard arithmetic (addition, multiplication by 2, negation) is derived mathematically through subtraction.
 
-To perform a conditional jump, move the target address into `CONDITIONAL_IN` and set `CONDITIONAL_OUT` to the `PC` (0x4).
+Conditionals are handled via a hardware trigger. If the value in `ALU_OUTPUT` is exactly zero, the processor automatically performs an internal move: the value currently in `CONDITIONAL_IN` is copied to `CONDITIONAL_OUT`. 
+
+To perform a conditional jump (e.g., "Branch if Equal"):
+1. Load the jump target address into `CONDITIONAL_IN`.
+2. Move the address of the `PC` register into `CONDITIONAL_OUT`.
+3. Perform a subtraction. If the result is 0, the target address is moved to the `PC`, and the jump occurs.
 
 ---
 
 ## Toolchain Usage
 
-### 1. The Assembler (`assembler.py`)
-The assembler processes `.asm` files into binary ROM files. It supports definitions, includes, and `move` operations.
+### 1. Assembler (`assembler.py`)
+The assembler translates `.asm` source files into 16-bit binary ROM files. It supports definitions, recursive file inclusion, and the `move` syntax.
 
-**Syntax:**
-* `move <source> <destination>`: Transports data between registers.
-* `define <value> <symbol>`: Maps a value or address to a name.
-* `include %file.asm%`: Includes an external assembly file.
+**Syntax Examples:**
+* `move <SRC> <DEST>`: Primary instruction.
+* `define <HEX_VAL> <NAME>`: Creates a symbolic constant.
+* `include %filename.asm%`: Inlines code from another file.
 
 **Command:**
 ```bash
-python assembler.py main.asm
+python assembler.py your_code.asm
