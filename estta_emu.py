@@ -101,6 +101,10 @@ class ESTTA:
         self.alu_out = result
         self.ifzero = (result == 0)
         self.regs[0xF] = result  # ALU_OUT
+        
+        # Conditional logic: if ALU result is 0, copy COND_IN to COND_OUT
+        if self.ifzero:
+            self.regs[0xB] = self.regs[0xC]  # COND_OUT = COND_IN
 
     def step(self):
         src, dst = self.rom[self.pc & 0xFF]
